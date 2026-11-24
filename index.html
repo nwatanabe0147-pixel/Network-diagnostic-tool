@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>ネットワーク診断ツール</title>
+<style>
+:root{
+--bg:#eef1f4;
+--card:#ffffff;
+--card-border:#d8dee5;
+--text:#1b1f24;
+--text-sub:#57606a;
+--line:#e3e8ed;
+--accent:#0b5cad;
+--accent-hover:#094e91;
+--accent-soft:#e8f1fa;
+--ok:#1a7f37;
+--ok-bg:#e6f4ea;
+--ng:#c81e1e;
+--ng-bg:#fdecec;
+--warn:#9a6700;
+--warn-bg:#fff4d6;
+--neutral-bg:#eef1f4;
+--input-bg:#ffffff;
+--input-border:#b9c2cc;
+--note-bg:#fff8e1;
+--note-border:#e3c878;
+--note-text:#5c4a12;
+--info-bg:#eef4fb;
+--info-border:#b7d0ea;
+--info-text:#173f63;
+--bar-bg:#e3e8ed;
+--bar-fill:#0b5cad;
+--shadow:0 1px 3px rgba(27,31,36,.08);
+}
+@media (prefers-color-scheme: dark){
+:root{
+--bg:#101315;
+--card:#1b1f23;
+--card-border:#333a41;
+--text:#e8ecef;
+--text-sub:#9aa4ae;
+--line:#2c333a;
+--accent:#4d9de0;
+--accent-hover:#6db0e8;
+--accent-soft:#1d2f42;
+--ok:#4cc06a;
+--ok-bg:#17301f;
+--ng:#f06666;
+--ng-bg:#3a1b1b;
+--warn:#e3b341;
+--warn-bg:#38300f;
+--neutral-bg:#262c31;
+--input-bg:#14181b;
+--input-border:#49525b;
+--note-bg:#2e2a16;
+--note-border:#6b5d24;
+--note-text:#e8d48a;
+--info-bg:#16283c;
+--info-border:#2f4f74;
+--info-text:#a9cdec;
+--bar-bg:#2c333a;
+--bar-fill:#4d9de0;
+--shadow:0 1px 3px rgba(0,0,0,.4);
+}
+}
+*{ box-sizing:border-box;}
+html{ -webkit-text-size-adjust:100%;}
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,"Noto Sans JP",sans-serif;
+font-size:15px;
+line-height:1.65;
+}
+.wrap{ max-width:960px; margin:0 auto; padding:20px 16px 48px;}
+h1{ font-size:24px; margin:0 0 6px; letter-spacing:.01em;}
+.lead{ color:var(--text-sub); margin:0 0 18px; font-size:14px;}
+h2{ font-size:18px; margin:0 0 4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+h2.num{
+display:inline-flex; align-items:center; justify-content:center;
+width:26px; height:26px; border-radius:50%;
+background:var(--accent); color:#fff; font-size:14px; font-weight:700; flex:none;
+}
+.card{
+background:var(--card);
+border:1px solid var(--card-border);
+border-radius:10px;
+box-shadow:var(--shadow);
+padding:20px;
+margin-bottom:18px;
+}
+.card > p.desc{ color:var(--text-sub); font-size:13.5px; margin:2px 0 14px;}
+.note{
+border-radius:8px; padding:12px 14px; font-size:13.5px; margin-bottom:14px;
+}
+.note.warn{ background:var(--note-bg); border:1px solid var(--note-border); color:var(--note-text);}
+.note.info{ background:var(--info-bg); border:1px solid var(--info-border); color:var(--info-text);}
+.note p{ margin:0 0 6px;}
+.note p:last-child{ margin-bottom:0;}
+.note ul{ margin:4px 0 0; padding-left:20px;}
+.note li{ margin:2px 0;}
+.note strong{ font-weight:700;}
+code,.mono{
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+font-size:.92em; word-break:break-all;
+}
+.note code{ background:rgba(127,127,127,.18); padding:1px 5px; border-radius:4px;}
+
+button{
+font:inherit; font-size:14px; cursor:pointer;
+min-height:40px; padding:8px 16px;
+border-radius:8px; border:1px solid var(--accent);
+background:var(--accent); color:#fff; font-weight:600;
+}
+button:hover{ background:var(--accent-hover); border-color:var(--accent-hover);}
+button:disabled{ opacity:.55; cursor:not-allowed;}
+button.sub{
+background:var(--card); color:var(--accent); border-color:var(--input-border);
+}
+button.sub:hover{ background:var(--accent-soft); border-color:var(--accent);}
+button.danger{
+background:var(--card); color:var(--ng); border-color:var(--input-border);
+min-height:36px; padding:5px 10px; font-size:13px;
+}
+button.danger:hover{ background:var(--ng-bg); border-color:var(--ng);}
+button.small{ min-height:36px; padding:5px 12px; font-size:13px;}
+button:focus-visible, input:focus-visible, select:focus-visible{
+outline:2px solid var(--accent); outline-offset:2px;
+}
+input[type="text"], input[type="url"], select{
+font:inherit; font-size:14px;
+min-height:40px; padding:8px 10px;
+border:1px solid var(--input-border); border-radius:8px;
+background:var(--input-bg); color:var(--text);
+max-width:100%;
+}
+label{ font-size:13.5px; font-weight:600;}
+label.lbl{ display:block; margin-bottom:4px; color:var(--text-sub); font-weight:600;}
+
+/* 状態バッジ */
+.badge{
+display:inline-flex; align-items:center; gap:7px;
+font-weight:700; font-size:14px;
+padding:5px 14px; border-radius:999px;
+}
+.badge.dot{ width:10px; height:10px; border-radius:50%; flex:none;}
+.badge.on{ background:var(--ok-bg); color:var(--ok);}
+.badge.on.dot{ background:var(--ok);}
+.badge.off{ background:var(--ng-bg); color:var(--ng);}
+.badge.off.dot{ background:var(--ng);}
+.badge.unknown{ background:var(--neutral-bg); color:var(--text-sub);}
+.badge.unknown.dot{ background:var(--text-sub);}
+
+.kv{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px 18px; margin-top:14px;}
+.kv.item{ border-top:1px solid var(--line); padding-top:8px;}
+.kv.k{ font-size:12.5px; color:var(--text-sub);}
+.kv.v{ font-size:15px; font-weight:600; word-break:break-all;}
+.row-flex{ display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+.mt{ margin-top:14px;}
+.small-text{ font-size:13px; color:var(--text-sub);}
+.result-box{
+margin-top:12px; border:1px solid var(--line); border-radius:8px;
+padding:12px 14px; font-size:14px; background:var(--card);
+}
+.result-box:empty{ display:none;}
+.err{ color:var(--ng); font-weight:600;}
+.ok-text{ color:var(--ok); font-weight:700;}
+
+/* 疎通確認テーブル */
+.controls{ display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px;}
+.controls.field{ display:flex; flex-direction:column; gap:4px;}
+table{ width:100%; border-collapse:collapse; font-size:14px;}
+th, td{ text-align:left; padding:10px 8px; vertical-align:middle;}
+thead th{ font-size:12.5px; color:var(--text-sub); border-bottom:2px solid var(--line); white-space:nowrap;}
+tbody td{ border-bottom:1px solid var(--line);}
+tbody tr:last-child td{ border-bottom:none;}
+tr.group-row td{
+background:var(--neutral-bg); font-weight:700; font-size:13px;
+padding:7px 8px; border-bottom:1px solid var(--line);
+}
+td.url{ color:var(--text-sub); font-size:12.5px;}
+td.num{ white-space:nowrap; font-variant-numeric:tabular-nums;}
+td.act{ white-space:nowrap;}
+.status{
+display:inline-block; font-weight:700; font-size:13px;
+padding:3px 10px; border-radius:999px; white-space:nowrap;
+}
+.status.ok{ background:var(--ok-bg); color:var(--ok);}
+.status.ng{ background:var(--ng-bg); color:var(--ng);}
+.status.partial{ background:var(--warn-bg); color:var(--warn);}
+.status.wait{ background:var(--neutral-bg); color:var(--text-sub); font-weight:600;}
+.status.checking{ background:var(--accent-soft); color:var(--accent);}
+
+.add-form{ display:grid; grid-template-columns:1fr 2fr auto; gap:10px; align-items:end; margin-top:16px;}
+.add-form.field{ display:flex; flex-direction:column;}
+.add-form input{ width:100%;}
+
+/* 進捗バー */
+.bar{ height:14px; background:var(--bar-bg); border-radius:7px; overflow:hidden; margin:10px 0 6px;}
+.bar > div{ height:100%; width:0%; background:var(--bar-fill); transition:width.15s linear;}
+.speed-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+.speed-grid h3{ font-size:15px; margin:0 0 8px;}
+.big-num{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums;}
+
+.toast{
+position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+background:#1b1f24; color:#fff; padding:10px 18px; border-radius:8px;
+font-size:14px; opacity:0; pointer-events:none; transition:opacity.2s, transform.2s;
+max-width:calc(100vw - 32px); text-align:center; z-index:50;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0);}
+@media (prefers-color-scheme: dark){.toast{ background:#e8ecef; color:#14181b;}}
+
+@media (max-width:680px){
+.wrap{ padding:14px 10px 40px;}
+.card{ padding:16px 14px;}
+h1{ font-size:21px;}
+.speed-grid{ grid-template-columns:1fr;}
+.add-form{ grid-template-columns:1fr;}
+/* テーブルをカード状に積む */
+table, thead, tbody, tr, td{ display:block; width:100%;}
+thead{ display:none;}
+tbody tr{ border-bottom:1px solid var(--line); padding:8px 0;}
+tbody tr:last-child{ border-bottom:none;}
+tbody td{ border-bottom:none; padding:3px 4px;}
+tr.group-row{ padding:0;}
+tr.group-row td{ padding:7px 8px;}
+td.num::before{ content:attr(data-lbl); color:var(--text-sub); font-size:12.5px; margin-right:8px;}
+td.act{ padding-top:8px;}
+td.act button{ margin-right:6px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>ネットワーク診断ツール</h1>
+<p class="lead">社内LANとインターネットへの接続状態を、ブラウザから確認するためのツールです。</p>
+
+<div class="note warn">
+<p><strong>使い方のお願い：</strong>このファイルはPCに保存して、ダブルクリック（<code>file://</code>）で開いて使ってください。Museの画面の中で開いたままでは、社内LANの <code>http://</code> のページへ届かない場合があります。</p>
+</div>
+<div class="note info">
+<p><strong>ブラウザでできること・できないこと</strong></p>
+<ul>
+<li>ICMPの <code>ping</code> や <code>traceroute</code> はできません。このツールの疎通確認は、HTTP／HTTPSで応答するサービスに対して接続を試みる方式です。</li>
+<li>SMBファイル共有（<code>\\サーバー名</code> の共有フォルダ）の確認はできません。</li>
+<li>ポート単体の開閉確認はできません。確認できるのはHTTPで応答するサービスのみです。</li>
+<li>応答時間はHTTP接続にかかった時間の目安で、pingの応答時間とは異なります。</li>
+</ul>
+</div>
+
+<!-- 1. このPCの接続状態 -->
+<section class="card" aria-labelledby="h-status">
+<h2 id="h-status"><span class="num">1</span>このPCの接続状態</h2>
+<p class="desc">ブラウザが検知している接続状態です。ネットワークの切り替えに合わせて自動で更新されます。</p>
+
+<div class="row-flex">
+<span id="onlineBadge" class="badge unknown"><span class="dot"></span><span id="onlineBadgeText">確認中…</span></span>
+<span class="small-text" id="onlineUpdated"></span>
+</div>
+
+<div class="kv" id="connInfo">
+<div class="item"><div class="k">回線種別（effectiveType）</div><div class="v" id="ciType">—</div></div>
+<div class="item"><div class="k">下り速度の目安（downlink）</div><div class="v" id="ciDown">—</div></div>
+<div class="item"><div class="k">往復遅延の目安（rtt）</div><div class="v" id="ciRtt">—</div></div>
+<div class="item"><div class="k">データセーバー（saveData）</div><div class="v" id="ciSave">—</div></div>
+</div>
+<p class="small-text" id="connNote"></p>
+
+<div class="mt">
+<div class="row-flex">
+<button type="button" id="ipBtn">IPアドレスを取得</button>
+<span class="small-text">WebRTC（STUNサーバー）を使って、このPCのローカルIPとグローバルIPを調べます。</span>
+</div>
+<div class="result-box" id="ipResult" aria-live="polite"></div>
+</div>
+</section>
+
+<!-- 2. 疎通確認 -->
+<section class="card" aria-labelledby="h-ping">
+<h2 id="h-ping"><span class="num">2</span>疎通確認（pingの代わり）</h2>
+<p class="desc">各URLへ実際に接続を試み、応答時間を測ります。複数回は200ms間隔で順番に実行します。</p>
+
+<div class="controls">
+<div class="field">
+<label for="pingCount">回数</label>
+<select id="pingCount">
+<option value="1">1回</option>
+<option value="4" selected>4回</option>
+<option value="10">10回</option>
+</select>
+</div>
+<div class="field">
+<label for="pingTimeout">タイムアウト</label>
+<select id="pingTimeout">
+<option value="3000">3秒</option>
+<option value="5000" selected>5秒</option>
+<option value="10000">10秒</option>
+</select>
+</div>
+<div class="field">
+<div class="row-flex">
+<button type="button" id="checkAllBtn">すべて確認</button>
+<button type="button" id="clearBtn" class="sub">結果をクリア</button>
+</div>
+</div>
+</div>
+
+<table aria-label="疎通確認の対象一覧">
+<thead>
+<tr>
+<th scope="col">対象</th>
+<th scope="col">URL</th>
+<th scope="col">結果</th>
+<th scope="col">最小</th>
+<th scope="col">平均</th>
+<th scope="col">最大</th>
+<th scope="col">損失</th>
+<th scope="col">操作</th>
+</tr>
+</thead>
+<tbody id="targetBody"></tbody>
+</table>
+
+<form class="add-form" id="addForm">
+<div class="field">
+<label for="addName"><span class="lbl">名称</span></label>
+<input type="text" id="addName" placeholder="例：プリンター" autocomplete="off" />
+</div>
+<div class="field">
+<label for="addUrl"><span class="lbl">URL</span></label>
+<input type="text" id="addUrl" placeholder="例：http://192.168.100.50/" autocomplete="off" />
+</div>
+<button type="submit" id="addBtn">対象を追加</button>
+</form>
+<p class="small-text">追加した対象はこのブラウザに保存され、次回開いたときも表示されます（削除ボタンは追加した対象にだけ付きます）。</p>
+
+<div class="note info mt">
+<p><strong>ファイルサーバー（<code>\\FILE-SV</code>）について：</strong>SMB共有のため、ブラウザからは確認できません。コマンドプロンプトを開いて <code>ping FILE-SV</code> と入力して確認してください。</p>
+</div>
+
+<div class="mt">
+<h3 style="font-size:15px;margin:0 0 8px;">結果の出力</h3>
+<div class="row-flex">
+<button type="button" id="copyBtn" class="sub">結果をテキストでコピー</button>
+<button type="button" id="csvBtn" class="sub">CSVで保存</button>
+</div>
+<p class="small-text">コピー／保存されるのは、上の疎通確認の結果です。未確認の対象は「未確認」として出力されます。</p>
+</div>
+</section>
+
+<!-- 3. DNS確認 -->
+<section class="card" aria-labelledby="h-dns">
+<h2 id="h-dns"><span class="num">3</span>DNS確認</h2>
+<p class="desc">ドメイン名からIPアドレス（Aレコード）を調べます。Google Public DNS（dns.google）へ問い合わせます。インターネット接続が必要です。</p>
+<form id="dnsForm">
+<div class="row-flex">
+<div style="flex:1 1 260px;">
+<label for="dnsInput"><span class="lbl">ドメイン名</span></label>
+<input type="text" id="dnsInput" value="www.google.com" style="width:100%;" autocomplete="off" spellcheck="false" />
+</div>
+<button type="submit" id="dnsBtn">名前解決する</button>
+</div>
+</form>
+<div class="result-box" id="dnsResult" aria-live="polite"></div>
+</section>
+
+<!-- 4. 速度測定 -->
+<section class="card" aria-labelledby="h-speed">
+<h2 id="h-speed"><span class="num">4</span>速度測定</h2>
+<p class="desc">Cloudflareの速度測定用サーバーとの間で実測します。<strong>インターネット接続が必要です。</strong>社内LANだけでは測定できません。</p>
+<div class="speed-grid">
+<div>
+<h3>ダウンロード</h3>
+<div class="row-flex">
+<div>
+<label for="dlSize"><span class="lbl">データ量</span></label>
+<select id="dlSize">
+<option value="1000000">1 MB</option>
+<option value="10000000" selected>10 MB</option>
+<option value="25000000">25 MB</option>
+</select>
+</div>
+<button type="button" id="dlBtn">ダウンロード測定</button>
+</div>
+<div class="bar" aria-hidden="true"><div id="dlBar"></div></div>
+<div class="small-text" id="dlProgress">未測定</div>
+<div class="big-num" id="dlResult"></div>
+</div>
+<div>
+<h3>アップロード</h3>
+<p class="small-text" style="margin:0 0 8px;">5 MBのデータを送信して測ります。</p>
+<button type="button" id="ulBtn">アップロード測定</button>
+<div class="small-text mt" id="ulProgress">未測定</div>
+<div class="big-num" id="ulResult"></div>
+</div>
+</div>
+</section>
+
+<p class="small-text">応答時間・速度は測定した時点の目安です。時間帯や回線の混み具合で変わります。</p>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+'use strict';
+
+function $(id){ return document.getElementById(id);}
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms);});}
+function esc(s){
+return String(s == null? '': s)
+.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+var toastTimer = null;
+function toast(msg){
+var t = $('toast');
+t.textContent = msg;
+t.classList.add('show');
+if (toastTimer) clearTimeout(toastTimer);
+toastTimer = setTimeout(function(){ t.classList.remove('show');}, 2600);
+}
+
+/* ========== 1. 接続状態 ========== */
+var badge = $('onlineBadge'), badgeText = $('onlineBadgeText');
+function renderOnline(){
+var on = navigator.onLine;
+badge.className = 'badge ' + (on? 'on': 'off');
+badgeText.textContent = on? 'オンライン': 'オフライン';
+var d = new Date();
+$('onlineUpdated').textContent = '（' + d.toLocaleTimeString('ja-JP') + ' 時点）';
+}
+window.addEventListener('online', renderOnline);
+window.addEventListener('offline', renderOnline);
+renderOnline();
+
+function renderConnection(){
+var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+if (!c){
+$('ciType').textContent = '取得できません';
+$('ciDown').textContent = '取得できません';
+$('ciRtt').textContent = '取得できません';
+$('ciSave').textContent = '取得できません';
+$('connNote').textContent = 'このブラウザでは回線情報（navigator.connection）を取得できません。';
+return;
+}
+$('ciType').textContent = c.effectiveType || '不明';
+$('ciDown').textContent = (typeof c.downlink === 'number')? (c.downlink + ' Mbps（推定）'): '不明';
+$('ciRtt').textContent = (typeof c.rtt === 'number')? (c.rtt + ' ms（推定）'): '不明';
+$('ciSave').textContent = c.saveData? 'オン（データ節約中）': 'オフ';
+$('connNote').textContent = '回線情報はブラウザの推定値です。実際の速度は「4. 速度測定」で測れます。';
+}
+renderConnection();
+var connObj = navigator.connection;
+if (connObj && connObj.addEventListener){
+connObj.addEventListener('change', renderConnection);
+}
+
+/* ========== 1. IPアドレス取得（WebRTC） ========== */
+$('ipBtn').addEventListener('click', function(){
+var btn = $('ipBtn'), box = $('ipResult');
+btn.disabled = true;
+box.innerHTML = '取得中…（最大5秒）';
+getIPs().then(function(res){
+btn.disabled = false;
+var html = '';
+html += '<div>ローカルIP： <strong class="mono">' + (res.local.length? esc(res.local.join('、')): '取得できませんでした') + '</strong></div>';
+html += '<div>グローバルIP： <strong class="mono">' + (res.pub.length? esc(res.pub.join('、')): '取得できませんでした') + '</strong></div>';
+if (res.local.some(function(ip){ return /\.local$/i.test(ip);})){
+html += '<div class="small-text">「.local」で終わるアドレスは、ブラウザがプライバシー保護のため本当のローカルIPを隠しているものです。</div>';
+}
+if (!res.local.length &&!res.pub.length){
+html += '<div class="small-text">WebRTCが無効な環境、またはSTUNサーバーへ届かない環境では取得できません。社内ネットワークのポリシーで遮断されている場合もあります。</div>';
+}
+box.innerHTML = html;
+});
+});
+
+function getIPs(){
+return new Promise(function(resolve){
+var local = {}, pub = {}, done = false, pc = null;
+function finish(){
+if (done) return;
+done = true;
+try { if (pc) pc.close();} catch(e){}
+resolve({ local: Object.keys(local), pub: Object.keys(pub)});
+}
+var timer = setTimeout(finish, 5000);
+function finishSoon(){
+clearTimeout(timer);
+setTimeout(finish, 300);
+}
+try {
+var RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+if (!RTC){ clearTimeout(timer); resolve({ local: [], pub: []}); return;}
+pc = new RTC({ iceServers: [{ urls: 'stun:stun.l.google.com:19302'}]});
+pc.createDataChannel('probe');
+pc.onicecandidate = function(ev){
+if (!ev ||!ev.candidate){ finishSoon(); return;}
+var cand = ev.candidate.candidate || '';
+var m = cand.match(/([0-9]{1,3}(?:\.[0-9]{1,3}){3}|[0-9a-fA-F:]*:[0-9a-fA-F:]+|[^\s]+\.local)/);
+if (!m) return;
+var ip = m[1];
+if (/srflx/.test(cand)) pub[ip] = true; else local[ip] = true;
+};
+pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer);}).catch(function(){ finishSoon();});
+} catch(e){
+clearTimeout(timer);
+resolve({ local: [], pub: []});
+}
+});
+}
+
+/* ========== 2. 疎通確認 ========== */
+var PRESETS = [
+{ id:'preset-techs', group:'社内LAN', name:'TECHS-S NOA', url:'http://192.168.100.200:55555/Home/', custom:false},
+{ id:'preset-google', group:'インターネット', name:'Google（接続確認用）', url:'https://www.google.com/generate_204', custom:false},
+{ id:'preset-yahoo', group:'インターネット', name:'Yahoo! Japan', url:'https://www.yahoo.co.jp/', custom:false},
+{ id:'preset-cloudflare', group:'インターネット', name:'Cloudflare', url:'https://www.cloudflare.com/', custom:false},
+{ id:'preset-github', group:'インターネット', name:'自分のGitHub Pages（タップツール）', url:'https://nwatanabe0147-pixel.github.io/tap-tool/', custom:false}
+];
+var LS_KEY = 'netdiag_custom_targets_v1';
+
+function loadCustom(){
+try {
+var raw = localStorage.getItem(LS_KEY);
+if (!raw) return [];
+var arr = JSON.parse(raw);
+if (!Array.isArray(arr)) return [];
+return arr.filter(function(x){ return x && x.name && x.url;}).map(function(x){
+return { id: String(x.id || ('custom-' + Date.now())), group:'追加した対象', name:String(x.name), url:String(x.url), custom:true};
+});
+} catch(e){ return [];}
+}
+function saveCustom(){
+try {
+var data = targets.filter(function(t){ return t.custom;}).map(function(t){
+return { id:t.id, name:t.name, url:t.url};
+});
+localStorage.setItem(LS_KEY, JSON.stringify(data));
+} catch(e){ /* 保存できない環境では無視 */}
+}
+
+var targets = PRESETS.concat(loadCustom());
+var results = {}; // id -> {status:'OK'|'NG'|'一部失敗', min, avg, max, lossText, lossFail, lossTotal, checkedAt}
+
+function renderTargets(){
+var tbody = $('targetBody');
+tbody.innerHTML = '';
+var lastGroup = null;
+targets.forEach(function(t){
+if (t.group!== lastGroup){
+lastGroup = t.group;
+var gr = document.createElement('tr');
+gr.className = 'group-row';
+var gtd = document.createElement('td');
+gtd.colSpan = 8;
+gtd.textContent = t.group;
+gr.appendChild(gtd);
+tbody.appendChild(gr);
+}
+var tr = document.createElement('tr');
+tr.setAttribute('data-id', t.id);
+
+var tdName = document.createElement('td');
+tdName.innerHTML = '<strong>' + esc(t.name) + '</strong>';
+tr.appendChild(tdName);
+
+var tdUrl = document.createElement('td');
+tdUrl.className = 'url mono';
+tdUrl.textContent = t.url;
+tr.appendChild(tdUrl);
+
+var tdStatus = document.createElement('td');
+tdStatus.className = 'cell-status';
+tdStatus.innerHTML = '<span class="status wait">未確認</span>';
+tr.appendChild(tdStatus);
+
+['min','avg','max'].forEach(function(k){
+var td = document.createElement('td');
+td.className = 'num cell-' + k;
+td.setAttribute('data-lbl', k === 'min'? '最小': (k === 'avg'? '平均': '最大'));
+td.textContent = '—';
+tr.appendChild(td);
+});
+
+var tdLoss = document.createElement('td');
+tdLoss.className = 'num cell-loss';
+tdLoss.setAttribute('data-lbl', '損失');
+tdLoss.textContent = '—';
+tr.appendChild(tdLoss);
+
+var tdAct = document.createElement('td');
+tdAct.className = 'act';
+var btn = document.createElement('button');
+btn.type = 'button';
+btn.className = 'small btn-check';
+btn.textContent = '確認';
+btn.addEventListener('click', function(){ runCheck(t, btn);});
+tdAct.appendChild(btn);
+if (t.custom){
+var del = document.createElement('button');
+del.type = 'button';
+del.className = 'danger btn-del';
+del.textContent = '削除';
+del.style.marginLeft = '6px';
+del.addEventListener('click', function(){
+targets = targets.filter(function(x){ return x.id!== t.id;});
+delete results[t.id];
+saveCustom();
+renderTargets();
+toast('「' + t.name + '」を削除しました');
+});
+tdAct.appendChild(del);
+}
+tr.appendChild(tdAct);
+tbody.appendChild(tr);
+});
+}
+
+function rowOf(id){
+return document.querySelector('tr[data-id="' + CSS.escape(id) + '"]');
+}
+function setRowChecking(id){
+var tr = rowOf(id);
+if (!tr) return;
+tr.querySelector('.cell-status').innerHTML = '<span class="status checking">確認中…</span>';
+}
+function setRowResult(id){
+var tr = rowOf(id), r = results[id];
+if (!tr ||!r) return;
+var cls = r.status === 'OK'? 'ok': (r.status === 'NG'? 'ng': 'partial');
+tr.querySelector('.cell-status').innerHTML =
+'<span class="status ' + cls + '">' + esc(r.status) + '</span>' +
+'<div class="small-text">' + esc(r.checkedAt) + '</div>';
+tr.querySelector('.cell-min').textContent = (r.min!= null)? (r.min + ' ms'): '—';
+tr.querySelector('.cell-avg').textContent = (r.avg!= null)? (r.avg + ' ms'): '—';
+tr.querySelector('.cell-max').textContent = (r.max!= null)? (r.max + ' ms'): '—';
+tr.querySelector('.cell-loss').textContent = r.lossText;
+}
+
+function probeOnce(url, timeoutMs){
+return new Promise(function(resolve){
+var ctrl = ('AbortController' in window)? new AbortController(): null;
+var timer = null;
+if (ctrl){
+timer = setTimeout(function(){ try { ctrl.abort();} catch(e){}}, timeoutMs);
+}
+var start = performance.now();
+var opts = { mode:'no-cors', cache:'no-store'};
+if (ctrl) opts.signal = ctrl.signal;
+fetch(url, opts).then(function(){
+if (timer) clearTimeout(timer);
+resolve({ ok:true, ms: performance.now() - start});
+}).catch(function(){
+if (timer) clearTimeout(timer);
+resolve({ ok:false, ms:null});
+});
+});
+}
+
+var checking = {};
+function runCheck(t, btn){
+if (checking[t.id]) return Promise.resolve();
+checking[t.id] = true;
+var count = parseInt($('pingCount').value, 10) || 4;
+var timeout = parseInt($('pingTimeout').value, 10) || 5000;
+if (btn) btn.disabled = true;
+setRowChecking(t.id);
+var times = [], fails = 0;
+var chain = Promise.resolve();
+var i;
+function step(idx){
+return probeOnce(t.url, timeout).then(function(r){
+if (r.ok) times.push(r.ms); else fails++;
+if (idx < count - 1) return sleep(200);
+});
+}
+for (i = 0; i < count; i++){
+(function(idx){ chain = chain.then(function(){ return step(idx);});})(i);
+}
+return chain.then(function(){
+var min = null, avg = null, max = null;
+if (times.length){
+min = Math.round(Math.min.apply(null, times));
+max = Math.round(Math.max.apply(null, times));
+avg = Math.round(times.reduce(function(a,b){ return a+b;}, 0) / times.length);
+}
+var status = fails === 0? 'OK': (times.length === 0? 'NG': '一部失敗');
+var d = new Date();
+results[t.id] = {
+status: status, min: min, avg: avg, max: max,
+lossText: fails + ' / ' + count,
+lossFail: fails, lossTotal: count,
+checkedAt: d.toLocaleTimeString('ja-JP')
+};
+setRowResult(t.id);
+checking[t.id] = false;
+if (btn) btn.disabled = false;
+});
+}
+
+$('checkAllBtn').addEventListener('click', function(){
+var btn = $('checkAllBtn');
+btn.disabled = true;
+var chain = Promise.resolve();
+targets.forEach(function(t){
+chain = chain.then(function(){
+var row = rowOf(t.id);
+var b = row? row.querySelector('.btn-check'): null;
+return runCheck(t, b);
+});
+});
+chain.then(function(){
+btn.disabled = false;
+toast('すべての確認が終わりました');
+});
+});
+
+$('clearBtn').addEventListener('click', function(){
+results = {};
+renderTargets();
+toast('結果をクリアしました');
+});
+
+$('addForm').addEventListener('submit', function(ev){
+ev.preventDefault();
+var name = $('addName').value.trim();
+var url = $('addUrl').value.trim();
+if (!name){ toast('名称を入力してください'); $('addName').focus(); return;}
+if (!url){ toast('URLを入力してください'); $('addUrl').focus(); return;}
+if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+try { new URL(url);} catch(e){ toast('URLの形式が正しくありません'); $('addUrl').focus(); return;}
+var t = { id:'custom-' + Date.now() + '-' + Math.floor(Math.random()*10000), group:'追加した対象', name:name, url:url, custom:true};
+targets.push(t);
+saveCustom();
+renderTargets();
+$('addName').value = '';
+$('addUrl').value = '';
+toast('「' + name + '」を追加しました');
+});
+
+renderTargets();
+
+/* ========== 5. 結果の出力 ========== */
+function resultRows(){
+return targets.map(function(t){
+var r = results[t.id];
+if (!r){
+return { name:t.name, url:t.url, status:'未確認', min:'', avg:'', max:'', loss:''};
+}
+return {
+name:t.name, url:t.url, status:r.status,
+min: (r.min!= null? String(r.min): ''),
+avg: (r.avg!= null? String(r.avg): ''),
+max: (r.max!= null? String(r.max): ''),
+loss: r.lossText
+};
+});
+}
+
+$('copyBtn').addEventListener('click', function(){
+var d = new Date();
+var lines = [];
+lines.push('ネットワーク診断結果（' + d.toLocaleString('ja-JP') + '）');
+lines.push('----------------------------------------');
+resultRows().forEach(function(r){
+var line = '' + r.name;
+line += '　' + r.url;
+if (r.avg!== '') line += '　平均 ' + r.avg + ' ms（最小 ' + r.min + ' ms／最大 ' + r.max + ' ms）損失 ' + r.loss;
+lines.push(line);
+});
+var text = lines.join('\n');
+function done(){ toast('結果をコピーしました');}
+function fallback(){
+var ta = document.createElement('textarea');
+ta.value = text;
+ta.style.position = 'fixed';
+ta.style.opacity = '0';
+document.body.appendChild(ta);
+ta.select();
+try { document.execCommand('copy'); done();}
+catch(e){ toast('コピーできませんでした');}
+document.body.removeChild(ta);
+}
+if (navigator.clipboard && navigator.clipboard.writeText){
+navigator.clipboard.writeText(text).then(done).catch(fallback);
+} else {
+fallback();
+}
+});
+
+$('csvBtn').addEventListener('click', function(){
+function cell(v){
+v = String(v == null? '': v);
+if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g,'""') + '"';
+return v;
+}
+var rows = [['対象','URL','結果','最小(ms)','平均(ms)','最大(ms)','損失']];
+resultRows().forEach(function(r){
+rows.push([r.name, r.url, r.status, r.min, r.avg, r.max, r.loss]);
+});
+var csv = '\uFEFF' + rows.map(function(r){ return r.map(cell).join(',');}).join('\r\n');
+var d = new Date();
+function pad(n){ return (n < 10? '0': '') + n;}
+var fname = 'ネットワーク診断結果_' + d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + '.csv';
+var blob = new Blob([csv], { type:'text/csv;charset=utf-8'});
+var a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = fname;
+document.body.appendChild(a);
+a.click();
+setTimeout(function(){
+URL.revokeObjectURL(a.href);
+document.body.removeChild(a);
+}, 400);
+toast('CSVを保存しました');
+});
+
+/* ========== 3. DNS確認 ========== */
+$('dnsForm').addEventListener('submit', function(ev){
+ev.preventDefault();
+var name = $('dnsInput').value.trim();
+var box = $('dnsResult'), btn = $('dnsBtn');
+if (!name){ box.innerHTML = '<span class="err">ドメイン名を入力してください。</span>'; return;}
+name = name.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+btn.disabled = true;
+box.innerHTML = '問い合わせ中…';
+var start = performance.now();
+fetch('https://dns.google/resolve?name=' + encodeURIComponent(name) + '&type=A', { cache:'no-store'})
+.then(function(res){
+if (!res.ok) throw new Error('HTTP ' + res.status);
+return res.json();
+})
+.then(function(json){
+var ms = Math.round(performance.now() - start);
+btn.disabled = false;
+var answers = (json.Answer || []).filter(function(a){ return a.type === 1;});
+if (json.Status!== 0){
+box.innerHTML = '<span class="err">名前解決できませんでした</span>（応答コード： ' + esc(json.Status) + '）。ドメイン名を確認してください。';
+return;
+}
+if (!answers.length){
+box.innerHTML = '<span class="err">Aレコードが見つかりませんでした。</span> 応答時間： ' + ms + ' ms';
+return;
+}
+var ips = answers.map(function(a){ return esc(a.data);}).join('、');
+box.innerHTML = '<div><strong class="mono">' + esc(name) + '</strong> のIPアドレス：</div>' +
+'<div class="mono" style="font-size:16px;margin:4px 0;">' + ips + '</div>' +
+'<div class="small-text">応答時間： ' + ms + ' ms</div>';
+})
+.catch(function(err){
+btn.disabled = false;
+box.innerHTML = '<span class="err">名前解決に失敗しました。</span> インターネット接続を確認してください。（' + esc(err && err.message? err.message: err) + '）';
+});
+});
+
+/* ========== 4. 速度測定 ========== */
+function fmtMbps(bytes, seconds){
+if (!seconds || seconds <= 0) return null;
+return (bytes * 8 / seconds / 1000000);
+}
+
+$('dlBtn').addEventListener('click', function(){
+var btn = $('dlBtn');
+var bytes = parseInt($('dlSize').value, 10);
+var bar = $('dlBar'), prog = $('dlProgress'), out = $('dlResult');
+btn.disabled = true;
+bar.style.width = '0%';
+out.textContent = '';
+prog.textContent = '測定中… 0 MB / ' + (bytes/1000000) + ' MB';
+var start = performance.now();
+fetch('https://speed.cloudflare.com/__down?bytes=' + bytes, { cache:'no-store'})
+.then(function(res){
+if (!res.ok) throw new Error('HTTP ' + res.status);
+if (!res.body ||!res.body.getReader){
+return res.arrayBuffer().then(function(buf){
+return { received: buf.byteLength, streamed:false};
+});
+}
+var reader = res.body.getReader();
+var received = 0;
+function pump(){
+return reader.read().then(function(r){
+if (r.done) return { received: received, streamed:true};
+received += r.value.byteLength;
+var pct = Math.min(100, Math.round(received / bytes * 100));
+bar.style.width = pct + '%';
+prog.textContent = '測定中… ' + (received/1000000).toFixed(2) + ' MB / ' + (bytes/1000000) + ' MB（' + pct + '%）';
+return pump();
+});
+}
+return pump();
+})
+.then(function(r){
+var seconds = (performance.now() - start) / 1000;
+var mbps = fmtMbps(r.received, seconds);
+bar.style.width = '100%';
+prog.textContent = '受信完了： ' + (r.received/1000000).toFixed(2) + ' MB を ' + seconds.toFixed(2) + ' 秒で受信';
+out.innerHTML = '<span class="ok-text">' + (mbps!= null? mbps.toFixed(1): '—') + ' Mbps</span>';
+btn.disabled = false;
+})
+.catch(function(err){
+prog.innerHTML = '<span class="err">測定に失敗しました。</span> インターネット接続を確認してください。（' + esc(err && err.message? err.message: err) + '）';
+btn.disabled = false;
+});
+});
+
+$('ulBtn').addEventListener('click', function(){
+var btn = $('ulBtn'), prog = $('ulProgress'), out = $('ulResult');
+btn.disabled = true;
+out.textContent = '';
+prog.textContent = '測定中… 5 MBを送信しています';
+var size = 5 * 1000 * 1000;
+var data = new Uint8Array(size);
+for (var i = 0; i < size; i += 4096){ data[i] = 65;}
+var blob = new Blob([data], { type:'application/octet-stream'});
+var start = performance.now();
+fetch('https://speed.cloudflare.com/__up', { method:'POST', body: blob, cache:'no-store'})
+.then(function(res){
+if (!res.ok) throw new Error('HTTP ' + res.status);
+var seconds = (performance.now() - start) / 1000;
+var mbps = fmtMbps(size, seconds);
+prog.textContent = '送信完了： 5.00 MB を ' + seconds.toFixed(2) + ' 秒で送信';
+out.innerHTML = '<span class="ok-text">' + (mbps!= null? mbps.toFixed(1): '—') + ' Mbps</span>';
+btn.disabled = false;
+})
+.catch(function(err){
+prog.innerHTML = '<span class="err">測定に失敗しました。</span> インターネット接続を確認してください。（' + esc(err && err.message? err.message: err) + '）';
+btn.disabled = false;
+});
+});
+})();
+</script>
+</body>
+</html>
