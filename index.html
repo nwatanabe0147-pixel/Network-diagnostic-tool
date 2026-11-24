@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>疎通確認（ping代わり）</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --card: #ffffff;
+        --ink: #1c2530;
+        --ink-sub: #5a6672;
+        --line: #dde3e9;
+        --line-soft: #e9edf1;
+        --accent: #1668b4;
+        --accent-ink: #ffffff;
+        --accent-soft: #e8f1fa;
+        --ok: #178a3c;
+        --ok-bg: #e6f5ec;
+        --ng: #c62f3b;
+        --ng-bg: #fbeaec;
+        --warn-bg: #fff7e6;
+        --warn-line: #ecd9a8;
+        --btn: #eef1f4;
+        --btn-ink: #1c2530;
+        --danger-ink: #b3261e;
+        --input-bg: #ffffff;
+        --shadow: 0 1px 3px rgba(20, 35, 55, 0.08);
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14181d;
+          --card: #1e242c;
+          --ink: #e8edf2;
+          --ink-sub: #9aa7b4;
+          --line: #39434f;
+          --line-soft: #2c343f;
+          --accent: #4d9be0;
+          --accent-ink: #0d1520;
+          --accent-soft: #22374d;
+          --ok: #4cc06e;
+          --ok-bg: #173324;
+          --ng: #f06874;
+          --ng-bg: #3d1d21;
+          --warn-bg: #33290f;
+          --warn-line: #6b5a26;
+          --btn: #2a323c;
+          --btn-ink: #e8edf2;
+          --danger-ink: #f06874;
+          --input-bg: #171c22;
+          --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+          color-scheme: dark;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+        font-size: 15px;
+        line-height: 1.65;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 20px 16px 48px;
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 1.35;
+        margin: 4px 0 6px;
+        letter-spacing: 0.01em;
+      }
+      .lead {
+        margin: 0 0 20px;
+        color: var(--ink-sub);
+        font-size: 14px;
+      }
+      section.card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        padding: 18px 20px 20px;
+        margin-bottom: 16px;
+      }
+      section.card h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--accent-soft);
+      }
+      /* ---------- 設定 ---------- */
+      .settings {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 22px;
+        align-items: end;
+      }
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-sub);
+        margin-bottom: 4px;
+      }
+      select, input[type="text"], input[type="url"] {
+        font: inherit;
+        font-size: 15px;
+        color: var(--ink);
+        background: var(--input-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        min-height: 40px;
+      }
+      select { min-width: 128px; }
+      .settings-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-left: auto;
+      }
+      button {
+        font: inherit;
+        font-size: 14px;
+        min-height: 40px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: var(--btn);
+        color: var(--btn-ink);
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(0.97); }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      button.small {
+        min-height: 36px;
+        padding: 5px 12px;
+        font-size: 13px;
+      }
+      button.delete {
+        color: var(--danger-ink);
+      }
+      .status-line {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--ink-sub);
+        min-height: 1.4em;
+      }
+      /* ---------- 表 ---------- */
+      .table-wrap { overflow-x: visible; }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th, td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--line-soft);
+        vertical-align: middle;
+      }
+      thead th {
+        font-size: 12.5px;
+        color: var(--ink-sub);
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      tbody tr:last-child td { border-bottom: none; }
+      td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .t-name { font-weight: 600; }
+      .t-url {
+        color: var(--ink-sub);
+        font-size: 12.5px;
+        word-break: break-all;
+      }
+      .badge {
+        display: inline-block;
+        min-width: 44px;
+        text-align: center;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .badge.ok { background: var(--ok-bg); color: var(--ok); }
+      .badge.ng { background: var(--ng-bg); color: var(--ng); }
+      .badge.idle { background: var(--btn); color: var(--ink-sub); font-weight: 500; }
+      .badge.run { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+      .row-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      /* ---------- 追加フォーム ---------- */
+      .add-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+      }
+      .add-form .field { flex: 1 1 200px; }
+      .add-form .field.url { flex: 2 1 260px; }
+      .add-form input { width: 100%; }
+      .form-error {
+        margin: 10px 0 0;
+        font-size: 13px;
+        color: var(--ng);
+        min-height: 1.4em;
+      }
+      .form-note {
+        margin: 6px 0 0;
+        font-size: 12.5px;
+        color: var(--ink-sub);
+      }
+      /* ---------- 出力 ---------- */
+      .output-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .output-msg {
+        font-size: 13px;
+        color: var(--ok);
+        min-height: 1.4em;
+      }
+      /* ---------- 注意書き ---------- */
+      .notes {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-line);
+        border-radius: 10px;
+        padding: 16px 20px 18px;
+        margin-bottom: 16px;
+      }
+      .notes h2 {
+        font-size: 15px;
+        margin: 0 0 8px;
+      }
+      .notes ul {
+        margin: 0;
+        padding-left: 1.3em;
+        font-size: 13.5px;
+      }
+      .notes li { margin-bottom: 4px; }
+      .notes li:last-child { margin-bottom: 0; }
+      /* ---------- モバイル：表を縦積みに ---------- */
+      @media (max-width: 680px) {
+        main { padding: 14px 10px 40px; }
+        section.card { padding: 14px 14px 16px; }
+        .settings-actions { margin-left: 0; }
+        thead { display: none; }
+        table, tbody, tr, td { display: block; width: 100%; }
+        tbody tr {
+          border-bottom: 1px solid var(--line);
+          padding: 10px 0 12px;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        td {
+          border-bottom: none;
+          padding: 2px 0;
+          text-align: left !important;
+        }
+        td.num::before {
+          content: attr(data-label) "：";
+          color: var(--ink-sub);
+          font-size: 12.5px;
+        }
+        td.cell-result, td.cell-actions { padding-top: 8px; }
+        .row-actions { justify-content: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>疎通確認（ping代わり）</h1>
+      <p class="lead">指定したサイトへブラウザから接続し、応答があるかどうかと応答時間を確認するツールです。pingの代わりとして、ネットワークの疎通確認に使えます。</p>
+
+      <section class="card" aria-labelledby="h-settings">
+        <h2 id="h-settings">確認の設定</h2>
+        <div class="settings">
+          <div class="field">
+            <label for="sel-count">回数</label>
+            <select id="sel-count">
+              <option value="1">1回</option>
+              <option value="4" selected>4回</option>
+              <option value="10">10回</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sel-timeout">タイムアウト</label>
+            <select id="sel-timeout">
+              <option value="3000">3秒</option>
+              <option value="5000" selected>5秒</option>
+              <option value="10000">10秒</option>
+            </select>
+          </div>
+          <div class="settings-actions">
+            <button type="button" class="primary" id="btn-all">すべて確認</button>
+            <button type="button" id="btn-clear">結果をクリア</button>
+          </div>
+        </div>
+        <p class="status-line" id="status-line" role="status"></p>
+      </section>
+
+      <section class="card" aria-labelledby="h-targets">
+        <h2 id="h-targets">確認対象</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">対象</th>
+                <th scope="col">結果</th>
+                <th scope="col" class="num">最小 (ms)</th>
+                <th scope="col" class="num">平均 (ms)</th>
+                <th scope="col" class="num">最大 (ms)</th>
+                <th scope="col" class="num">損失</th>
+                <th scope="col"><span style="position:absolute;left:-9999px;">操作</span></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-add">
+        <h2 id="h-add">対象を追加</h2>
+        <form class="add-form" id="add-form">
+          <div class="field">
+            <label for="in-name">名称</label>
+            <input type="text" id="in-name" placeholder="例：社内ポータル" autocomplete="off" />
+          </div>
+          <div class="field url">
+            <label for="in-url">URL</label>
+            <input type="url" id="in-url" placeholder="https://example.com/" autocomplete="off" inputmode="url" />
+          </div>
+          <button type="submit" class="primary">追加する</button>
+        </form>
+        <p class="form-error" id="form-error" role="alert"></p>
+        <p class="form-note">追加した対象はこのブラウザに保存され、次回開いたときも表示されます。</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-output">
+        <h2 id="h-output">結果の出力</h2>
+        <div class="output-actions">
+          <button type="button" id="btn-copy">結果をテキストでコピー</button>
+          <button type="button" id="btn-csv">CSVで保存</button>
+          <span class="output-msg" id="output-msg" role="status"></span>
+        </div>
+      </section>
+
+      <div class="notes" aria-labelledby="h-notes">
+        <h2 id="h-notes">ご利用にあたって</h2>
+        <ul>
+          <li>このツールはブラウザの機能だけで動作します。ICMPの ping や traceroute は実行できません。</li>
+          <li>ポート単体の開閉確認はできません。確認できるのは、HTTP / HTTPS で応答するサイトのみです。</li>
+          <li>表示される応答時間は HTTP での往復時間です。ICMP の ping とは値が少し異なりますが、疎通の目安として利用できます。</li>
+          <li>サイト側の設定によっては、実際には接続できていても「NG」と表示される場合があります。</li>
+        </ul>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var STORAGE_KEY = 'pingToolCustomTargets.v1';
+
+        var PRESETS = [
+          { name: 'Google（接続確認用）', url: 'https://www.google.com/generate_204' },
+          { name: 'Yahoo! Japan', url: 'https://www.yahoo.co.jp/' },
+          { name: 'Cloudflare', url: 'https://www.cloudflare.com/' }
+        ];
+
+        var targets = []; // {id, name, url, custom}
+        var results = {}; // id -> {state:'idle'|'run'|'done', ok, min, avg, max, lossText, done, total}
+        var idSeq = 0;
+        var runningAll = false;
+
+        var tbody = document.getElementById('tbody');
+        var selCount = document.getElementById('sel-count');
+        var selTimeout = document.getElementById('sel-timeout');
+        var btnAll = document.getElementById('btn-all');
+        var btnClear = document.getElementById('btn-clear');
+        var statusLine = document.getElementById('status-line');
+        var addForm = document.getElementById('add-form');
+        var inName = document.getElementById('in-name');
+        var inUrl = document.getElementById('in-url');
+        var formError = document.getElementById('form-error');
+        var btnCopy = document.getElementById('btn-copy');
+        var btnCsv = document.getElementById('btn-csv');
+        var outputMsg = document.getElementById('output-msg');
+
+        function nextId() {
+          idSeq += 1;
+          return 't' + idSeq;
+        }
+
+        function loadCustom() {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            var arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return [];
+            return arr.filter(function (x) {
+              return x && typeof x.name === 'string' && typeof x.url === 'string';
+            });
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function saveCustom() {
+          try {
+            var arr = targets.filter(function (t) { return t.custom; }).map(function (t) {
+              return { name: t.name, url: t.url };
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+          } catch (e) {
+            /* 保存できない環境では追加分はこの画面限りになります */
+          }
+        }
+
+        function initTargets() {
+          targets = [];
+          PRESETS.forEach(function (p) {
+            targets.push({ id: nextId(), name: p.name, url: p.url, custom: false });
+          });
+          loadCustom().forEach(function (c) {
+            targets.push({ id: nextId(), name: c.name, url: c.url, custom: true });
+          });
+          targets.forEach(function (t) {
+            results[t.id] = { state: 'idle' };
+          });
+        }
+
+        function esc(s) {
+          return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        function fmt(n) {
+          return n == null ? '―' : String(Math.round(n));
+        }
+
+        function render() {
+          tbody.innerHTML = '';
+          targets.forEach(function (t) {
+            var r = results[t.id] || { state: 'idle' };
+            var tr = document.createElement('tr');
+
+            var badge;
+            if (r.state === 'run') {
+              badge = '<span class="badge run">確認中 ' + r.done + '/' + r.total + '</span>';
+            } else if (r.state === 'done') {
+              badge = r.ok
+                ? '<span class="badge ok">OK</span>'
+                : '<span class="badge ng">NG</span>';
+            } else {
+              badge = '<span class="badge idle">未確認</span>';
+            }
+
+            var delBtn = t.custom
+              ? '<button type="button" class="small delete" data-act="del" data-id="' + t.id + '">削除</button>'
+              : '';
+
+            tr.innerHTML =
+              '<td><div class="t-name">' + esc(t.name) + '</div>' +
+              '<div class="t-url">' + esc(t.url) + '</div></td>' +
+              '<td class="cell-result">' + badge + '</td>' +
+              '<td class="num" data-label="最小 (ms)">' + (r.state === 'done' ? fmt(r.min) : '―') + '</td>' +
+              '<td class="num" data-label="平均 (ms)">' + (r.state === 'done' ? fmt(r.avg) : '―') + '</td>' +
+              '<td class="num" data-label="最大 (ms)">' + (r.state === 'done' ? fmt(r.max) : '―') + '</td>' +
+              '<td class="num" data-label="損失">' + (r.state === 'done' ? esc(r.lossText) : '―') + '</td>' +
+              '<td class="cell-actions"><div class="row-actions">' +
+              '<button type="button" class="small" data-act="run" data-id="' + t.id + '"' +
+              (r.state === 'run' || runningAll ? ' disabled' : '') + '>確認</button>' +
+              delBtn +
+              '</div></td>';
+            tbody.appendChild(tr);
+          });
+          btnAll.disabled = runningAll;
+        }
+
+        function wait(ms) {
+          return new Promise(function (resolve) { setTimeout(resolve, ms); });
+        }
+
+        function probeOnce(url, timeoutMs) {
+          return new Promise(function (resolve) {
+            var controller = null;
+            var timer = null;
+            if (typeof AbortController !== 'undefined') {
+              controller = new AbortController();
+              timer = setTimeout(function () {
+                try { controller.abort(); } catch (e) {}
+              }, timeoutMs);
+            }
+            var start = performance.now();
+            var opts = { mode: 'no-cors', cache: 'no-store' };
+            if (controller) opts.signal = controller.signal;
+            fetch(url, opts).then(function () {
+              if (timer) clearTimeout(timer);
+              resolve({ ok: true, ms: performance.now() - start });
+            }).catch(function () {
+              if (timer) clearTimeout(timer);
+              resolve({ ok: false, ms: null });
+            });
+          });
+        }
+
+        function runTarget(t) {
+          var count = parseInt(selCount.value, 10);
+          var timeoutMs = parseInt(selTimeout.value, 10);
+          var r = { state: 'run', done: 0, total: count };
+          results[t.id] = r;
+          render();
+
+          var times = [];
+          var fails = 0;
+          var chain = Promise.resolve();
+          var step = function (i) {
+            return probeOnce(t.url, timeoutMs).then(function (res) {
+              if (res.ok) times.push(res.ms); else fails += 1;
+              r.done = i + 1;
+              render();
+              if (i < count - 1) return wait(200);
+            });
+          };
+          for (var i = 0; i < count; i++) {
+            (function (idx) {
+              chain = chain.then(function () { return step(idx); });
+            })(i);
+          }
+          return chain.then(function () {
+            var done = {
+              state: 'done',
+              ok: times.length > 0,
+              min: times.length ? Math.min.apply(null, times) : null,
+              max: times.length ? Math.max.apply(null, times) : null,
+              avg: times.length ? times.reduce(function (a, b) { return a + b; }, 0) / times.length : null,
+              fails: fails,
+              total: count,
+              lossText: fails + '/' + count
+            };
+            results[t.id] = done;
+            render();
+            return done;
+          });
+        }
+
+        function setStatus(text) {
+          statusLine.textContent = text;
+        }
+
+        btnAll.addEventListener('click', function () {
+          if (runningAll) return;
+          runningAll = true;
+          render();
+          setStatus('すべての対象を確認しています…');
+          var chain = Promise.resolve();
+          targets.forEach(function (t) {
+            chain = chain.then(function () { return runTarget(t); });
+          });
+          chain.then(function () {
+            runningAll = false;
+            render();
+            var now = new Date();
+            setStatus('確認が完了しました（' + now.toLocaleTimeString('ja-JP') + '）');
+          });
+        });
+
+        btnClear.addEventListener('click', function () {
+          targets.forEach(function (t) {
+            if (results[t.id].state !== 'run') results[t.id] = { state: 'idle' };
+          });
+          setStatus('');
+          outputMsg.textContent = '';
+          render();
+        });
+
+        tbody.addEventListener('click', function (ev) {
+          var btn = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+          if (!btn || btn.disabled) return;
+          var id = btn.getAttribute('data-id');
+          var act = btn.getAttribute('data-act');
+          var t = null;
+          targets.forEach(function (x) { if (x.id === id) t = x; });
+          if (!t) return;
+          if (act === 'run') {
+            setStatus(t.name + ' を確認しています…');
+            runTarget(t).then(function () {
+              setStatus(t.name + ' の確認が完了しました。');
+            });
+          } else if (act === 'del') {
+            targets = targets.filter(function (x) { return x.id !== id; });
+            delete results[id];
+            saveCustom();
+            render();
+          }
+        });
+
+        addForm.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          formError.textContent = '';
+          var name = inName.value.trim();
+          var url = inUrl.value.trim();
+          if (!name) {
+            formError.textContent = '名称を入力してください。';
+            inName.focus();
+            return;
+          }
+          if (!url) {
+            formError.textContent = 'URLを入力してください。';
+            inUrl.focus();
+            return;
+          }
+          if (!/^https?:\/\//i.test(url)) {
+            url = 'https://' + url;
+          }
+          try {
+            new URL(url);
+          } catch (e) {
+            formError.textContent = 'URLの形式が正しくありません。';
+            inUrl.focus();
+            return;
+          }
+          var dup = targets.some(function (t) { return t.url === url; });
+          if (dup) {
+            formError.textContent = '同じURLの対象がすでに追加されています。';
+            return;
+          }
+          var t = { id: nextId(), name: name, url: url, custom: true };
+          targets.push(t);
+          results[t.id] = { state: 'idle' };
+          saveCustom();
+          inName.value = '';
+          inUrl.value = '';
+          render();
+        });
+
+        function checkedRows() {
+          return targets.filter(function (t) {
+            return results[t.id] && results[t.id].state === 'done';
+          });
+        }
+
+        function buildText() {
+          var rows = checkedRows();
+          if (!rows.length) return null;
+          var now = new Date();
+          var lines = [];
+          lines.push('疎通確認結果 ' + now.toLocaleString('ja-JP'));
+          lines.push('');
+          rows.forEach(function (t) {
+            var r = results[t.id];
+            lines.push(
+              t.name + '（' + t.url + '）' +
+              ' 結果: ' + (r.ok ? 'OK' : 'NG') +
+              ' / 最小: ' + (r.min == null ? '―' : Math.round(r.min) + 'ms') +
+              ' / 平均: ' + (r.avg == null ? '―' : Math.round(r.avg) + 'ms') +
+              ' / 最大: ' + (r.max == null ? '―' : Math.round(r.max) + 'ms') +
+              ' / 損失: ' + r.lossText
+            );
+          });
+          return lines.join('\n');
+        }
+
+        function fallbackCopy(text) {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+          document.body.removeChild(ta);
+          return ok;
+        }
+
+        btnCopy.addEventListener('click', function () {
+          var text = buildText();
+          if (!text) {
+            outputMsg.style.color = 'var(--ng)';
+            outputMsg.textContent = 'コピーできる結果がありません。先に確認を実行してください。';
+            return;
+          }
+          outputMsg.style.color = 'var(--ok)';
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              outputMsg.textContent = '結果をコピーしました。';
+            }).catch(function () {
+              outputMsg.textContent = fallbackCopy(text) ? '結果をコピーしました。' : 'コピーに失敗しました。';
+            });
+          } else {
+            outputMsg.textContent = fallbackCopy(text) ? '結果をコピーしました。' : 'コピーに失敗しました。';
+          }
+        });
+
+        function csvCell(v) {
+          var s = v == null ? '' : String(v);
+          if (/[",\n]/.test(s)) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+          }
+          return s;
+        }
+
+        function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+        btnCsv.addEventListener('click', function () {
+          var rows = checkedRows();
+          outputMsg.style.color = 'var(--ok)';
+          if (!rows.length) {
+            outputMsg.style.color = 'var(--ng)';
+            outputMsg.textContent = '保存できる結果がありません。先に確認を実行してください。';
+            return;
+          }
+          var lines = [];
+          lines.push(['対象', 'URL', '結果', '最小(ms)', '平均(ms)', '最大(ms)', '損失'].join(','));
+          rows.forEach(function (t) {
+            var r = results[t.id];
+            lines.push([
+              csvCell(t.name),
+              csvCell(t.url),
+              r.ok ? 'OK' : 'NG',
+              r.min == null ? '' : Math.round(r.min),
+              r.avg == null ? '' : Math.round(r.avg),
+              r.max == null ? '' : Math.round(r.max),
+              csvCell(r.lossText)
+            ].join(','));
+          });
+          var csv = '﻿' + lines.join('\r\n') + '\r\n';
+          var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+          var now = new Date();
+          var fname = '疎通確認結果_' +
+            now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate()) +
+            '-' + pad2(now.getHours()) + pad2(now.getMinutes()) + '.csv';
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = fname;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+          outputMsg.textContent = 'CSVを保存しました（' + fname + '）。';
+        });
+
+        initTargets();
+        render();
+      })();
+    </script>
+  </body>
+</html>
